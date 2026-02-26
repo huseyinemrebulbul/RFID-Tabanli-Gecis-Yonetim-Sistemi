@@ -1,0 +1,28 @@
+# Çevresel Değişkenler ve API Keyler (ÇOK ÖNEMLİ)
+.env
+*.env
+**/.env
+
+# ESP (PlatformIO)
+**/.pio/
+**/.vscode/
+**/*.elf
+**/*.bin
+**/data/
+**/include/
+**/lib/
+**/test/
+
+# GUI (Avalonia C#)
+**/[Bb]in/
+**/[Oo]bj/
+**/.idea/
+**/*.user
+**/paket.txt
+**/test.txt
+**/Mac_Uygulamasi/
+**/Windows_Uygulamasi/
+
+# İşletim Sistemi Kalıntıları
+**/.DS_Store
+**/Thumbs.db

@@ -1,0 +1,203 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="IpekYoluGYS.MainWindow"
+        Title="İpek Yolu Geçiş Yönetim Sistemi"
+        Width="1300" Height="850" MinWidth="1100" MinHeight="700"
+        Background="#F3F3F3">
+
+    <Grid RowDefinitions="*, Auto">
+        <TabControl Grid.Row="0" Margin="10" Background="White">
+            
+            <TabItem Header="📋 Hareket Logları">
+                <Grid ColumnDefinitions="300, 5, *">
+                    <Border Grid.Column="0" Margin="10" BorderBrush="#D0D0D0" BorderThickness="1" CornerRadius="5" Padding="15">
+                        <StackPanel Spacing="10">
+                            <TextBlock Text="Gelişmiş Filtreleme" FontWeight="Bold" FontSize="14" Foreground="#555" Margin="0,0,0,10"/>
+                            
+                            <TextBlock Text="İsim ile Ara:" FontWeight="Bold"/>
+                            <AutoCompleteBox x:Name="TxtLogSearch" Watermark="İsimle arayın..." FilterMode="Contains" TextChanged="TxtLogSearch_TextChanged" Height="36"/>
+
+                            <TextBlock Text="Başlangıç Tarihi:" FontWeight="Bold" Margin="0,10,0,0"/>
+                            <CalendarDatePicker x:Name="DpLogStart" Height="36" CornerRadius="4" HorizontalAlignment="Stretch" Watermark="Başlangıç seçin..."/>
+                            
+                            <TextBlock Text="Bitiş Tarihi:" FontWeight="Bold"/>
+                            <CalendarDatePicker x:Name="DpLogEnd" Height="36" CornerRadius="4" HorizontalAlignment="Stretch" Watermark="Bitiş seçin..."/>
+
+                            <TextBlock Text="Kayıt Türü:" FontWeight="Bold" Margin="0,10,0,0"/>
+                            <ComboBox x:Name="CmbLogTur" SelectedIndex="0" Height="36" CornerRadius="4" HorizontalAlignment="Stretch" VerticalContentAlignment="Center">
+                                <ComboBoxItem>TÜMÜ</ComboBoxItem>
+                                <ComboBoxItem>PERSONEL</ComboBoxItem>
+                                <ComboBoxItem>GONULLU</ComboBoxItem>
+                            </ComboBox>
+
+                            <Button Content="🔍 Logları Filtrele" Click="BtnRefreshLogs_Click" HorizontalAlignment="Stretch" CornerRadius="4" Background="#0078D7" Foreground="White" Margin="0,15,0,0"/>
+                            <Button Content="🔄 Yenile" Click="BtnRefreshLogs_Click" CornerRadius="4" HorizontalAlignment="Stretch"/>
+                            </StackPanel>
+                    </Border>
+
+                    <GridSplitter Grid.Column="1" Width="5" Background="Transparent" ResizeDirection="Columns"/>
+
+                    <Grid Grid.Column="2" RowDefinitions="*, Auto" Margin="10,10,10,0">
+                        <DataGrid x:Name="GridLogs" x:CompileBindings="False" Grid.Row="0" AutoGenerateColumns="False" IsReadOnly="True" GridLinesVisibility="Horizontal" RowHeight="32" LoadingRow="GridLogs_LoadingRow" DoubleTapped="GridLogs_DoubleTapped" BorderBrush="#D0D0D0" BorderThickness="1" CornerRadius="5">
+                            <DataGrid.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="✏️ Saati Düzenle" Click="MenuEditTime_Click"/>
+                                    <Separator/>
+                                    <MenuItem Header="🖥️ Düzenleyen PC Bilgisini Göster" Click="MenuShowPc_Click"/>
+                                </ContextMenu>
+                            </DataGrid.ContextMenu>
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Tarih/Saat" Binding="{Binding Zaman}" Width="190"/>
+                                <DataGridTextColumn Header="Ad Soyad" Binding="{Binding AdSoyad}" Width="*"/>
+                                <DataGridTextColumn Header="Rol" Binding="{Binding Rol}" Width="120"/>
+                                <DataGridTextColumn Header="İşlem" Binding="{Binding IslemTipi}" Width="120"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                        
+                        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Margin="10" Spacing="20">
+                            <Button Content="◀ Önceki Sayfa" Click="BtnPrevPage_Click" CornerRadius="4"/>
+                            <TextBlock x:Name="LblPageInfo" Text="Sayfa 1 / 1" VerticalAlignment="Center" FontWeight="Bold"/>
+                            <Button Content="Sonraki Sayfa ▶" Click="BtnNextPage_Click" CornerRadius="4"/>
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="👤 Kullanıcı Yönetimi">
+                <Grid ColumnDefinitions="300, 5, *">
+                    <Border Grid.Column="0" Margin="10" BorderBrush="#D0D0D0" BorderThickness="1" CornerRadius="5" Padding="15">
+                        <StackPanel Spacing="10">
+                            <TextBlock x:Name="LblUserFormTitle" Text="Yeni Kişi Ekle" FontWeight="Bold" FontSize="14" Foreground="#555" Margin="0,0,0,10"/>
+                            
+                            <TextBlock Text="Kart UID:" FontWeight="Bold"/>
+                            <Grid ColumnDefinitions="*, Auto">
+                                <TextBox Grid.Column="0" x:Name="TxtUid" Height="36" CornerRadius="4" VerticalContentAlignment="Center"/>
+                                <Button x:Name="BtnCek" Grid.Column="1" Content="📡 Çek" Click="BtnCek_Click" Margin="5,0,0,0" CornerRadius="4" Height="36"/>
+                            </Grid>
+
+                            <TextBlock Text="Kayıt Türü:" FontWeight="Bold"/>
+                            <ComboBox x:Name="CmbRol" SelectedIndex="0" HorizontalAlignment="Stretch" CornerRadius="4" Height="36" VerticalContentAlignment="Center">
+                                <ComboBoxItem>PERSONEL</ComboBoxItem>
+                                <ComboBoxItem>GONULLU</ComboBoxItem>
+                            </ComboBox>
+
+                            <TextBlock Text="Ad Soyad:" FontWeight="Bold"/>
+                            <TextBox x:Name="TxtAd" Height="36" CornerRadius="4" VerticalContentAlignment="Center"/>
+
+                            <TextBlock Text="TC Kimlik No:" FontWeight="Bold"/>
+                            <TextBox x:Name="TxtTc" Height="36" CornerRadius="4" VerticalContentAlignment="Center"/>
+
+                            <Button x:Name="BtnSaveUser" Content="KİŞİYİ KAYDET" Click="BtnSaveUser_Click" Background="#27ae60" Foreground="White" CornerRadius="4" HorizontalAlignment="Stretch" Margin="0,15,0,0"/>
+                            <Button x:Name="BtnCancelEdit" Content="İptal Et" Click="BtnCancelEdit_Click" CornerRadius="4" HorizontalAlignment="Stretch" IsVisible="False"/>
+                        </StackPanel>
+                    </Border>
+
+                    <GridSplitter Grid.Column="1" Width="5" Background="Transparent" ResizeDirection="Columns"/>
+
+                    <Grid Grid.Column="2" RowDefinitions="Auto, *" Margin="10">
+                        <Grid Grid.Row="0" ColumnDefinitions="Auto, *, Auto" Margin="0,0,0,10">
+                            <TextBlock Grid.Column="0" Text="Kayıtlı Kişiler" FontWeight="Bold" FontSize="16" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                            <AutoCompleteBox Grid.Column="1" x:Name="TxtUserFilter" Watermark="İsimle filtrele..." FilterMode="Contains" TextChanged="TxtUserFilter_TextChanged" Height="36" VerticalAlignment="Center"/>
+                            <Button Grid.Column="2" Content="🔄 Yenile" Click="BtnRefreshUsers_Click" CornerRadius="4" Margin="10,0,0,0"/>
+                        </Grid>
+
+                        <DataGrid x:Name="GridUsers" x:CompileBindings="False" Grid.Row="1" AutoGenerateColumns="False" IsReadOnly="True" GridLinesVisibility="Horizontal" RowHeight="32" LoadingRow="GridUsers_LoadingRow" BorderBrush="#D0D0D0" BorderThickness="1" CornerRadius="5">
+                            <DataGrid.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="Giriş Yaptır" Click="MenuForceGiris_Click"/>
+                                    <MenuItem Header="Çıkış Yaptır" Click="MenuForceCikis_Click"/>
+                                    <Separator/>
+                                    <MenuItem Header="⏱️ Haftalık Saat Raporu" Click="MenuShowWeeklyHours_Click"/>
+                                    <Separator/>
+                                    <MenuItem Header="✏️ Kişiyi Düzenle" Click="MenuEditUser_Click"/>
+                                    <Separator/>
+                                    <MenuItem Header="🗑️ Kişiyi Sil" Click="MenuDeleteUser_Click"/>
+                                </ContextMenu>
+                            </DataGrid.ContextMenu>
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="#" Binding="{Binding Sira}" Width="40"/>
+                                <DataGridTextColumn Header="Kart ID" Binding="{Binding Uid}" Width="120"/>
+                                <DataGridTextColumn Header="Ad Soyad" Binding="{Binding AdSoyad}" Width="*"/>
+                                <DataGridTextColumn Header="TC Kimlik" Binding="{Binding TC}" Width="120"/>
+                                <DataGridTextColumn Header="Rol" Binding="{Binding Rol}" Width="120"/>
+                                <DataGridTextColumn Header="Durum" Binding="{Binding Durum}" Width="110"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Grid>
+                </Grid>
+            </TabItem>
+            
+            <TabItem Header="🗓️ İzin Yönetimi">
+                 <Grid ColumnDefinitions="300, 5, *">
+                    <Border Grid.Column="0" Margin="10" BorderBrush="#D0D0D0" BorderThickness="1" CornerRadius="5" Padding="15">
+                        <StackPanel Spacing="10">
+                            <TextBlock Text="İzin İşlemleri" FontWeight="Bold" FontSize="14" Foreground="#555" Margin="0,0,0,10"/>
+                            
+                            <TextBlock Text="Personel / Gönüllü Adı:" FontWeight="Bold"/>
+                            <AutoCompleteBox x:Name="TxtIzinAd" Watermark="İsim seçin..." FilterMode="Contains" Height="36"/>
+                            
+                            <TextBlock Text="Başlangıç Tarihi:" FontWeight="Bold"/>
+                            <CalendarDatePicker x:Name="DpIzinBas" Height="36" CornerRadius="4" HorizontalAlignment="Stretch" Watermark="Tarih seçin..."/>
+                            
+                            <TextBlock Text="Bitiş Tarihi:" FontWeight="Bold"/>
+                            <CalendarDatePicker x:Name="DpIzinBit" Height="36" CornerRadius="4" HorizontalAlignment="Stretch" Watermark="Tarih seçin..."/>
+                            
+                            <TextBlock Text="Açıklama:" FontWeight="Bold"/>
+                            <TextBox x:Name="TxtAciklama" Height="80" CornerRadius="4" AcceptsReturn="True" TextWrapping="Wrap"/>
+                            
+                            <Button x:Name="BtnAddIzin" Content="➕ İzin Ekle" Click="BtnAddIzin_Click" Background="#0078D7" Foreground="White" CornerRadius="4" HorizontalAlignment="Stretch" Margin="0,10,0,0"/>
+                            <Button x:Name="BtnCancelIzinEdit" Content="İptal Et" Click="BtnCancelIzinEdit_Click" CornerRadius="4" HorizontalAlignment="Stretch" IsVisible="False"/>
+                            
+                            <Button Content="🔄 Yenile" Click="BtnRefreshIzin_Click" CornerRadius="4" HorizontalAlignment="Stretch"/>
+                        </StackPanel>
+                    </Border>
+
+                    <GridSplitter Grid.Column="1" Width="5" Background="Transparent" ResizeDirection="Columns"/>
+
+                    <Grid Grid.Column="2" RowDefinitions="Auto, *" Margin="10">
+                        <Grid Grid.Row="0" ColumnDefinitions="Auto, *" Margin="0,0,0,10">
+                            <TextBlock Grid.Column="0" Text="Kayıtlı İzinler" FontWeight="Bold" FontSize="16" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                            <AutoCompleteBox Grid.Column="1" x:Name="TxtIzinFilter" Watermark="İsimle filtrele..." FilterMode="Contains" TextChanged="TxtIzinFilter_TextChanged" Height="36" VerticalAlignment="Center"/>
+                        </Grid>
+
+                        <DataGrid x:Name="GridIzinler" x:CompileBindings="False" Grid.Row="1" AutoGenerateColumns="False" IsReadOnly="True" GridLinesVisibility="Horizontal" RowHeight="32" BorderBrush="#D0D0D0" BorderThickness="1" CornerRadius="5">
+                            <DataGrid.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="📄 Açıklama Detayını Göster" Click="MenuShowIzinAciklama_Click"/>
+                                    <Separator/>
+                                    <MenuItem Header="✏️ İzni Düzenle" Click="MenuEditIzin_Click"/>
+                                    <Separator/>
+                                    <MenuItem Header="🗑️ İzni Sil" Click="MenuDeleteIzin_Click"/>
+                                </ContextMenu>
+                            </DataGrid.ContextMenu>
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Ad Soyad" Binding="{Binding AdSoyad}" Width="*"/>
+                                <DataGridTextColumn Header="Başlangıç" Binding="{Binding BaslangicTarihi, StringFormat=\{0:yyyy-MM-dd\}}" Width="120"/>
+                                <DataGridTextColumn Header="Bitiş" Binding="{Binding BitisTarihi, StringFormat=\{0:yyyy-MM-dd\}}" Width="120"/>
+                                <DataGridTextColumn Header="Açıklama" Binding="{Binding Aciklama}" Width="*"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Grid>
+                 </Grid>
+            </TabItem>
+        </TabControl>
+
+        <TextBlock x:Name="LblStatus" Grid.Row="1" Margin="10" Foreground="Gray" Text="Sistem Hazır"/>
+        
+        <Border x:Name="OverlayDialog" Background="#40000000" IsVisible="False" ZIndex="100">
+            <Border Background="White" Width="380" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="20" CornerRadius="10" BoxShadow="0 10 30 0 #40000000">
+                <StackPanel Spacing="15">
+                    <TextBlock x:Name="DialogTitle" Text="Başlık" FontWeight="Bold" FontSize="16"/>
+                    <ScrollViewer MaxHeight="400">
+                        <TextBlock x:Name="DialogMessage" Text="Mesaj" TextWrapping="Wrap" LineHeight="22"/>
+                    </ScrollViewer>
+                    <TextBox x:Name="DialogInput" IsVisible="False"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+                        <Button x:Name="BtnDialogCancel" Content="İptal" Click="BtnDialogCancel_Click" IsVisible="False" CornerRadius="4"/>
+                        <Button x:Name="BtnDialogOk" Content="Tamam" Click="BtnDialogOk_Click" Background="#0078D7" Foreground="White" Width="80" CornerRadius="4" HorizontalContentAlignment="Center"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Border>
+    </Grid>
+</Window>
