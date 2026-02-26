@@ -1,66 +1,46 @@
-📘 İpek Yolu Geçiş Yönetim Sistemi - Teknik Dokümantasyon
+İpek Yolu Geçiş Yönetim Sistemi (RFID Tabanlı)
+İpek Yolu Uluslararası Çocuk ve Gençlik Merkezi için geliştirilmiş, donanım (ESP32-S3) ve masaüstü yazılım (Avalonia UI) bileşenlerinden oluşan, çevrimdışı (offline) çalışabilme yeteneğine sahip kapsamlı bir RFID geçiş ve personel/gönüllü takip sistemidir.
 
-## 1. Proje Özeti
-Bu sistem, bir kurumdaki (Personel ve Gönüllü) giriş-çıkış hareketlerini RFID kartlar aracılığıyla takip eden, verileri bulutta (Supabase) saklayan, internet kesintisinde offline çalışabilen ve gelişmiş bir masaüstü yazılımı ile yönetilen hibrit bir IoT çözümüdür.
+🌟 Öne Çıkan Özellikler
+Kesintisiz Çalışma (Offline Mode): İnternet veya Supabase bağlantısı koptuğunda sistem durmaz. Okutulan kartlar ESP32 üzerindeki LittleFS dosya sistemine zaman damgasıyla kaydedilir ve bağlantı sağlandığında otomatik olarak veritabanına senkronize edilir (Log Rotasyonu destekli).
 
-## 2. Veritabanı Yapısı (Supabase / PostgreSQL)
-Sistem 4 ana tablo ve 1 otomatik zamanlayıcı (Cron Job) üzerine kuruludur.
+Asenkron FreeRTOS Mimarisi: Ağ işlemleri (Supabase HTTP istekleri) ve donanım kesmeleri (USB HID okuma) farklı çekirdeklere (Core 0 ve Core 1) bölünerek sistemin kilitlenmesi veya kart okumalarını kaçırması engellenmiştir.
 
-### A. Tablolar
-1. **`personel`**: Kadrolu çalışanların tutulduğu tablo.
-* `uid` (Kart ID), `ad_soyad`, `TC`, `iceride_mi` (Boolean), `created_at`.
+Akıllı Çift Okuma Koruması (Cooldown): Aynı kartın arka arkaya yanlışlıkla okutulmasını engellemek için 3 dakikalık yazılımsal filtreleme mekanizması mevcuttur.
 
-2. **`"Gonullu"`**: (Dikkat: Çift tırnaklı ve Büyük Harf). Gönüllü çalışanların tutulduğu tablo.
-* `uid`, `ad_soyad`, `TC`, `iceride_mi`, `created_at`.
+Cross-Platform Yönetim Paneli: Yöneticiler için C# ve Avalonia UI ile geliştirilmiş; Windows, macOS ve Linux üzerinde çalışabilen masaüstü arayüzü.
 
-3. **`hareketler`**: Tüm giriş-çıkış loglarının tutulduğu arşiv.
-* `uid`, `islem_tipi` (GIRIS/CIKIS/OFFLINE_SYNC), `zaman` (Timestamp).
+Gelişmiş Raporlama: Masaüstü uygulaması üzerinden personelin giriş-çıkış hareketleri analiz edilerek ISO standartlarında Haftalık Çalışma Saati raporları otomatik oluşturulur.
 
-4. **`anlik_kart`**: Tanımsız bir kart okutulduğunda ID'sinin düştüğü geçici hafıza. Masaüstü uygulaması "Kartı Çek" dediğinde buradan okur.
-* `id` (Sabit 1), `uid`, `zaman`.
+OTA (Over-The-Air) Güncelleme: Cihazı bilgisayara bağlamadan uzaktan kablosuz yazılım güncelleme desteği.
 
-### B. Otomasyon
-`pg_cron` eklentisi.
-Her gece saat **23:59**'da çalışır. İçeride unutan personeli tespit eder, otomatik "CIKIS" logu ekler ve durumlarını "Dışarıda" olarak günceller.
+🏗️ Sistem Mimarisi ve Kullanılan Teknolojiler
+Sistem, uç cihaz (Edge Device) ve yönetim paneli olmak üzere iki ana birimden oluşur ve gerçek zamanlı veritabanı ile haberleşir.
 
-## 3. Gömülü Sistem (ESP32 - Donanım & Yazılım)
-Cihaz, RFID okuyucuyu USB üzerinden (HID Modu) okur ve WiFi ile sunucuya bağlanır.
+1. Gömülü Sistem (Donanım)
 
-### A. Donanım Bağlantı Şeması (Pinout)
-| Bileşen | ESP32 Pini | Açıklama |
-| **OLED Ekran (SDA)** | GPIO 8 | Ekran Veri Hattı |
-| **OLED Ekran (SCL)** | GPIO 9 | Ekran Saat Hattı |
-| **Buzzer** | GPIO 15 | Sesli Uyarı |
-| **RGB LED (Kırmızı)** | GPIO 4 | Hata / Çıkış Durumu |
-| **RGB LED (Yeşil)** | GPIO 5 | Başarılı / Giriş Durumu |
-| **RGB LED (Mavi)** | GPIO 6 | Bekleme / İşlem Durumu |
-| **RFID Okuyucu** | USB Port (D+/D-) | `EspUsbHost` kütüphanesi ile USB üzerinden okuma |
+Mikrodenetleyici: ESP32-S3 DevKitC-1
 
-### B. Yazılım Özellikleri (Firmware)
+Geliştirme Ortamı: PlatformIO (C++) / Arduino Framework
 
-Dual Core (Çift Çekirdek) Mimari:
-Core 1: USB'den kart okuma ve ekran çizimi.
-Core 0: WiFi iletişimi ve Supabase veri transferi (Sistemin donmasını engeller).
+Çevre Birimleri: \* USB HID RFID Okuyucu (EspUsbHost kütüphanesi ile)
 
-Akıllı Arama Algoritması: Kart okunduğunda sırasıyla `personel` -> `Gonullu` tablolarını arar. Hangisinde bulursa işlemi oraya yazar.
-Offline Mod: WiFi kesilirse veriyi kaybetmez, dahili hafızaya (`LittleFS`) kaydeder. İnternet gelince otomatik senkronize eder (`OFFLINE_SYNC`).
-Tanımsız Kart Yönetimi: Kayıtsız kart okununca Buzzer 3 kere öter ve kart ID'si veritabanındaki `anlik_kart` tablosuna gönderilir (Kayıt kolaylığı için).
+128x64 I2C SSD1306 OLED Ekran
 
-## 4. Masaüstü Yönetim Paneli (Python Arayüzü)
-Sistemin beyni olan, Windows ve Mac uyumlu kontrol yazılımı.
+RGB LED ve Aktif Buzzer (Görsel ve işitsel bildirim)
 
-### A. Kullanılan Teknolojiler
-Dil:** Python 3.11+
-GUI Kütüphanesi:** `tkinter` + `sv_ttk` (Modern Tema - Sun Valley).
-Veri İşleme:** `pandas` (Excel ve Analiz için).
-Paketleme:** `pyinstaller` (Tek dosya .exe/.app).
+Kritik Kütüphaneler: ArduinoJson, LittleFS, FreeRTOS
 
-### B. Özellikler
-Sekmeli Yapı:** "Hareket Logları" ve "Kullanıcı Yönetimi" olarak iki ana ekran.
-Filtreleme:** Logları ve Kullanıcıları "Tümü", "Personel" veya "Gönüllü" olarak filtreleyebilme.
-Kolay Kayıt (Remote Fetch):** "📡 Çek" butonu ile ESP32'ye okutulan son kartın ID'sini otomatik forma getirir. Elle yazma hatasını önler.
-Analiz Sistemi:** Bir kullanıcı seçildiğinde **son 4 haftanın** çalışma saatlerini hesaplar ve popup olarak gösterir.
-Gelişmiş Raporlama:** "Excel'e İndir" dendiğinde tek bir dosyada 3 ayrı sayfa oluşturur:
-Sheet 1: Personel Listesi
-Sheet 2: Gönüllü Listesi
-Sheet 3: Tüm Hareket Logları
+2. Masaüstü Arayüzü (GUI)
+
+Framework: Avalonia UI (C# / .NET 9.0)
+
+Mimari: Data Transfer Object (DTO) destekli, asenkron yapılı UI tasarımı.
+
+Özellikler: Gerçek zamanlı log izleme, personel/gönüllü CRUD işlemleri, manuel giriş/çıkış müdahalesi, izin yönetimi.
+
+3. Veritabanı (Backend)
+
+Servis: Supabase (PostgreSQL tabanlı REST API)
+
+Tablolar: personel, Gonullu, hareketler, izinler, anlik_kart
