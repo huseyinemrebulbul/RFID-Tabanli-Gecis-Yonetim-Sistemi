@@ -484,4 +484,3 @@ void drawScreen(String title, String msg) {
   display.setTextSize(1); display.setCursor(0, 50); display.println(msg);
   display.display();
 }
-
