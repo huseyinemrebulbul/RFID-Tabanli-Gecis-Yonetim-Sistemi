@@ -72,42 +72,49 @@ const unsigned long COOLDOWN_TIME = 180000; // 3 Dakika
  */
 class MyEspUsbHost : public EspUsbHost {
 public:
-  String tempBuffer = "";
+  char tempBuffer[50] = {0}; // Heap fragmantasyonunu onlemek icin statik dizi
+  uint8_t bufferIndex = 0;
+
   void onKeyboardKey(uint8_t ascii, uint8_t code, uint8_t modifier) {
     // Okuma işlemi tamamlandığında (Enter karakteri geldiğinde)
     if (ascii == '\n' || ascii == '\r') {
-      if (tempBuffer.length() > 0) {
+      if (bufferIndex > 0) {
         
+        String currentUid = String(tempBuffer);
+
         // --- ÇİFT OKUMA KORUMASI BAŞLANGICI ---
         // Gelen kart bir öncekiyle aynıysa VE aradan 3 dakika geçmediyse işlemi yoksay.
-        if (tempBuffer == lastReadUid && (millis() - lastReadTime < COOLDOWN_TIME)) {
+        if (currentUid == lastReadUid && (millis() - lastReadTime < COOLDOWN_TIME)) {
           unsigned long kalanSaniye = (COOLDOWN_TIME - (millis() - lastReadTime)) / 1000;
           Serial.print("[COOLDOWN] Engellendi! Ayni kart. Kalan sure: ");
           Serial.print(kalanSaniye);
           Serial.println(" saniye.");
           
-          tempBuffer = ""; // Tamponu boşalt ve işlemi doğrudan iptal et
+          memset(tempBuffer, 0, sizeof(tempBuffer)); // Tamponu bosalt
+          bufferIndex = 0;
           return; 
         }
         
         // Kart FARKLIYSA veya aynı kart ama 3 DAKİKA DOLDUYSA: Hafızayı güncelle
-        lastReadUid = tempBuffer;
+        lastReadUid = currentUid;
         lastReadTime = millis();
         // --- ÇİFT OKUMA KORUMASI BİTİŞİ ---
 
         // Okunan UID'yi struct'a paketle ve FreeRTOS kuyruğuna gönder (Core 0'da işlenmesi için)
         RfidData data;
-        tempBuffer.toCharArray(data.uid, 50);
+        strlcpy(data.uid, tempBuffer, sizeof(data.uid));
         xQueueSend(rfidQueue, &data, 0); 
-        Serial.print("[USB] Kart Okundu: "); Serial.println(tempBuffer);
+        Serial.print("[USB] Kart Okundu: "); Serial.println(currentUid);
         
-        tempBuffer = ""; 
+        memset(tempBuffer, 0, sizeof(tempBuffer)); // Tamponu sifirla
+        bufferIndex = 0;
         lastActivityTime = millis();
       }
     } 
-    // Gelen karakter yazdırılabilir bir ASCII karakteriyse tampona ekle
-    else if (ascii >= 32 && ascii <= 126) { 
-      tempBuffer += (char)ascii;
+    // Gelen karakter yazdırılabilir bir ASCII karakteriyse tampona ekle (Sinir kontrolu ile)
+    else if (ascii >= 32 && ascii <= 126 && bufferIndex < 49) { 
+      tempBuffer[bufferIndex++] = (char)ascii;
+      tempBuffer[bufferIndex] = '\0'; // String sonlandiriciyi garantiye al
     }
   }
 };
