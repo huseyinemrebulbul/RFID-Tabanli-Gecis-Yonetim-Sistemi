@@ -1,10 +1,14 @@
 #nullable disable
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using Avalonia.Platform.Storage;
+using ClosedXML.Excel;
 using DotNetEnv;
 using Supabase;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -14,7 +18,7 @@ namespace IpekYoluGYS
     /// DataGrid üzerinde kişileri göstermek için kullanılan Data Transfer Object (DTO) sınıfı.
     /// Farklı tabloları (Personel ve Gönüllü) tek bir arayüzde birleştirmek için kullanılır.
     /// </summary>
-    public class UserDto 
+    public class UserDto
     {
         public int Sira { get; set; }
         public string Uid { get; set; }
@@ -22,13 +26,13 @@ namespace IpekYoluGYS
         public string TC { get; set; }
         public string Rol { get; set; }
         public string Durum { get; set; }
-        public bool IcerideMi { get; set; } 
+        public bool IcerideMi { get; set; }
     }
 
     /// <summary>
     /// Log kayıtlarını DataGrid üzerinde formatlı göstermek için kullanılan DTO.
     /// </summary>
-    public class LogDto 
+    public class LogDto
     {
         public int Id { get; set; }
         public string Zaman { get; set; }
@@ -46,11 +50,11 @@ namespace IpekYoluGYS
         private List<LogDto> _filteredLogs = new();
         private List<UserDto> _allUsers = new();
         private List<Izin> _allIzinler = new();
-        
+
         // Sayfalama (Pagination) ayarları
         private int _currentPage = 1;
         private int _pageSize = 100;
-        
+
         // İşlemleri hangi cihazın yaptığını loglamak için ortam bilgisayar adını alır
         private string _pcName = Environment.MachineName;
 
@@ -69,7 +73,7 @@ namespace IpekYoluGYS
         {
             InitializeComponent();
             InitializeSupabase();
-            
+
             // Başlangıç tarihi olarak bugünü set et (UI komponentlerine)
             DpLogStart.SelectedDate = DateTime.Now;
             DpLogEnd.SelectedDate = DateTime.Now;
@@ -87,7 +91,7 @@ namespace IpekYoluGYS
             {
                 var basePath = System.AppDomain.CurrentDomain.BaseDirectory;
                 var envPath = System.IO.Path.Combine(basePath, ".env");
-                
+
                 if (System.IO.File.Exists(envPath)) Env.Load(envPath);
                 else Env.Load();
 
@@ -104,9 +108,9 @@ namespace IpekYoluGYS
                 var options = new SupabaseOptions { AutoConnectRealtime = true };
                 _supabase = new Client(url, key, options);
                 await _supabase.InitializeAsync();
-                
+
                 LblStatus.Text = $"Sistem Hazır | Geçerli PC: {_pcName}";
-                
+
                 // Sistem açılır açılmaz verileri önbelleğe al
                 await LoadUsers();
                 await LoadLogs();
@@ -128,12 +132,12 @@ namespace IpekYoluGYS
             DialogInput.IsVisible = isInput;
             DialogInput.Text = defaultInput;
             BtnDialogCancel.IsVisible = isInput || isConfirm;
-            
+
             OverlayDialog.IsVisible = true;
             _dialogTcs = new TaskCompletionSource<string>();
             var result = await _dialogTcs.Task; // Kullanıcı butona basana kadar bu satırda bekler (UI donmaz)
             OverlayDialog.IsVisible = false;
-            
+
             return result;
         }
 
@@ -144,7 +148,7 @@ namespace IpekYoluGYS
         // ====================================================================
         // LOG FONKSİYONLARI 
         // ====================================================================
-        
+
         /// <summary>
         /// Supabase 'hareketler' tablosundan belirtilen tarih aralığındaki verileri çeker
         /// ve UI'a yansıtmak üzere LogDto listesine çevirir.
@@ -176,12 +180,15 @@ namespace IpekYoluGYS
                 var islem = log.IslemTipi;
                 // Eğer gece otomatik çıkartılan bir sistem varsa bunu belirt (Gece 23:59'daki çıkışlar)
                 if (islem == "CIKIS" && log.Zaman != null && log.Zaman.Contains("23:59")) islem = "OTOMATIK_CIKIS";
-                
-                _allLogs.Add(new LogDto { 
-                    Id = log.Id ?? 0, 
-                    Zaman = log.Zaman, 
-                    AdSoyad = ad, Rol = rol, IslemTipi = islem, 
-                    GuncelleyenPc = string.IsNullOrEmpty(log.GuncelleyenPc) ? "-" : log.GuncelleyenPc 
+
+                _allLogs.Add(new LogDto
+                {
+                    Id = log.Id ?? 0,
+                    Zaman = log.Zaman,
+                    AdSoyad = ad,
+                    Rol = rol,
+                    IslemTipi = islem,
+                    GuncelleyenPc = string.IsNullOrEmpty(log.GuncelleyenPc) ? "-" : log.GuncelleyenPc
                 });
             }
             ApplyLogFilter();
@@ -205,10 +212,10 @@ namespace IpekYoluGYS
         /// </summary>
         private void RenderLogPage()
         {
-            GridLogs.ItemsSource = null; 
+            GridLogs.ItemsSource = null;
             var pagedLogs = _filteredLogs.Skip((_currentPage - 1) * _pageSize).Take(_pageSize).ToList();
             GridLogs.ItemsSource = pagedLogs;
-            
+
             int totalPages = (int)Math.Ceiling(_filteredLogs.Count / (double)_pageSize);
             if (totalPages == 0) totalPages = 1;
             LblPageInfo.Text = $"Sayfa {_currentPage} / {totalPages}   |   Toplam: {_filteredLogs.Count} Kayıt";
@@ -242,11 +249,13 @@ namespace IpekYoluGYS
                 var yeniSaat = await ShowDialogAsync("Saat Düzenle", $"Eski Saat: {log.Zaman}\nYeni Saati Girin (YYYY-MM-DD HH:MM:SS):", true, false, log.Zaman);
                 if (!string.IsNullOrEmpty(yeniSaat) && yeniSaat != log.Zaman)
                 {
-                    try {
+                    try
+                    {
                         await _supabase.From<Hareket>().Where(x => x.Id == log.Id).Set(x => x.Zaman, yeniSaat).Set(x => x.GuncelleyenPc, _pcName).Update();
                         await ShowDialogAsync("Başarılı", "Saat güncellendi.");
                         await LoadLogs();
-                    } catch (Exception ex) { await ShowDialogAsync("Hata", ex.Message); }
+                    }
+                    catch (Exception ex) { await ShowDialogAsync("Hata", ex.Message); }
                 }
             }
         }
@@ -270,7 +279,7 @@ namespace IpekYoluGYS
         // ====================================================================
         // KULLANICI FONKSİYONLARI VE HAFTALIK SAAT RAPORU
         // ====================================================================
-        
+
         /// <summary>
         /// Supabase üzerinden Personel ve Gönüllü tablolarını çekip tek bir listede birleştirir.
         /// </summary>
@@ -299,8 +308,8 @@ namespace IpekYoluGYS
         {
             if (e.Row.DataContext is UserDto user)
             {
-                if (user.IcerideMi) e.Row.Foreground = Avalonia.Media.SolidColorBrush.Parse("#27ae60"); 
-                else e.Row.Foreground = Avalonia.Media.SolidColorBrush.Parse("#c0392b"); 
+                if (user.IcerideMi) e.Row.Foreground = Avalonia.Media.SolidColorBrush.Parse("#27ae60");
+                else e.Row.Foreground = Avalonia.Media.SolidColorBrush.Parse("#c0392b");
             }
         }
 
@@ -315,15 +324,17 @@ namespace IpekYoluGYS
         {
             if (GridUsers.SelectedItem is UserDto user)
             {
-                try {
+                try
+                {
                     var islemTipi = isGiris ? "GIRIS" : "CIKIS";
                     string anlikZamanESP32Formati = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
 
-                    await _supabase.From<Hareket>().Insert(new Hareket { 
-                        Uid = user.Uid, 
-                        Zaman = anlikZamanESP32Formati, 
-                        IslemTipi = islemTipi, 
-                        GuncelleyenPc = _pcName 
+                    await _supabase.From<Hareket>().Insert(new Hareket
+                    {
+                        Uid = user.Uid,
+                        Zaman = anlikZamanESP32Formati,
+                        IslemTipi = islemTipi,
+                        GuncelleyenPc = _pcName
                     });
 
                     if (user.Rol == "PERSONEL") await _supabase.From<Personel>().Where(x => x.Uid == user.Uid).Set(x => x.IcerideMi, isGiris).Update();
@@ -332,7 +343,8 @@ namespace IpekYoluGYS
                     await LoadUsers();
                     await LoadLogs();
                     await ShowDialogAsync("Başarılı", $"{user.AdSoyad} için manuel {islemTipi} işlemi kaydedildi.");
-                } catch (Exception ex) { await ShowDialogAsync("Hata", ex.Message); }
+                }
+                catch (Exception ex) { await ShowDialogAsync("Hata", ex.Message); }
             }
         }
 
@@ -374,9 +386,9 @@ namespace IpekYoluGYS
                             {
                                 // Çıkış varsa ve son giriş hafızadaysa farkı al
                                 TimeSpan fark = dt - sonGiris.Value;
-                                
+
                                 // Olası yanlışlıkları engellemek için sadece 0 ile 24 saat arası mantıklı döngüleri topla
-                                if (fark.TotalHours >= 0 && fark.TotalHours <= 24) 
+                                if (fark.TotalHours >= 0 && fark.TotalHours <= 24)
                                 {
                                     int yil = dt.Year;
                                     // Yılın kaçıncı haftası olduğunu uluslararası standarta göre hesapla
@@ -385,7 +397,7 @@ namespace IpekYoluGYS
 
                                     if (!haftalikSureler.ContainsKey(key))
                                         haftalikSureler[key] = TimeSpan.Zero;
-                                    
+
                                     haftalikSureler[key] += fark; // İlgili haftanın toplamına ekle
                                 }
                                 sonGiris = null; // Döngüyü kapat
@@ -505,15 +517,15 @@ namespace IpekYoluGYS
 
         private async void BtnCek_Click(object sender, RoutedEventArgs e)
         {
-            try 
+            try
             {
                 var res = await _supabase.From<AnlikKart>().Where(x => x.Id == 1).Get();
-                
-                if (res.Models.Count > 0) 
+
+                if (res.Models.Count > 0)
                 {
                     var kart = res.Models[0];
-                    
-                    if (string.IsNullOrEmpty(kart.Uid)) 
+
+                    if (string.IsNullOrEmpty(kart.Uid))
                     {
                         await ShowDialogAsync("Bilgi", "Okunmuş yeni bir kart bulunamadı.");
                         return;
@@ -522,7 +534,7 @@ namespace IpekYoluGYS
                     if (DateTime.TryParse(kart.Zaman, out DateTime okumaZamani))
                     {
                         TimeSpan fark = DateTime.Now - okumaZamani;
-                        
+
                         if (fark.TotalMinutes > 5)
                         {
                             await _supabase.From<AnlikKart>().Where(x => x.Id == 1).Set(x => x.Uid, "").Set(x => x.Zaman, "").Update();
@@ -533,18 +545,18 @@ namespace IpekYoluGYS
                     }
 
                     TxtUid.Text = kart.Uid;
-                    
+
                     await _supabase.From<AnlikKart>().Where(x => x.Id == 1).Set(x => x.Uid, "").Set(x => x.Zaman, "").Update();
                 }
-            } 
-            catch (Exception ex) 
+            }
+            catch (Exception ex)
             {
                 await ShowDialogAsync("Hata", "Kart bilgisi çekilemedi:\n" + ex.Message);
             }
         }
 
         private void TxtUserFilter_TextChanged(object sender, Avalonia.Controls.TextChangedEventArgs e) => ApplyUserFilter();
-        
+
         private void ApplyUserFilter()
         {
             var text = TxtUserFilter.Text?.ToLower() ?? "";
@@ -557,16 +569,18 @@ namespace IpekYoluGYS
         // ====================================================================
         private async Task LoadIzinler()
         {
-            try {
+            try
+            {
                 var res = await _supabase.From<Izin>().Get();
                 _allIzinler = res.Models.ToList();
                 _allIzinler = _allIzinler.OrderByDescending(x => x.BaslangicTarihi).ToList();
                 ApplyIzinFilter();
-            } catch (Exception) { _allIzinler = new List<Izin>(); }
+            }
+            catch (Exception) { _allIzinler = new List<Izin>(); }
         }
 
         private void TxtIzinFilter_TextChanged(object sender, Avalonia.Controls.TextChangedEventArgs e) => ApplyIzinFilter();
-        
+
         private void ApplyIzinFilter()
         {
             var text = TxtIzinFilter.Text?.ToLower() ?? "";
@@ -576,38 +590,42 @@ namespace IpekYoluGYS
 
         private async void BtnAddIzin_Click(object sender, RoutedEventArgs e)
         {
-             var secilenIsim = TxtIzinAd.Text?.Trim();
-             var user = _allUsers.FirstOrDefault(u => u.AdSoyad == secilenIsim);
-             
-             if (user != null && DpIzinBas.SelectedDate.HasValue && DpIzinBit.SelectedDate.HasValue) 
-             {
-                 try {
-                     if (!_isIzinEditMode) 
-                     {
-                         await _supabase.From<Izin>().Insert(new Izin { 
-                             Uid = user.Uid, 
-                             AdSoyad = user.AdSoyad, 
-                             BaslangicTarihi = DpIzinBas.SelectedDate.Value, 
-                             BitisTarihi = DpIzinBit.SelectedDate.Value,     
-                             Aciklama = TxtAciklama.Text 
-                         });
-                         await ShowDialogAsync("Başarılı", "İzin başarıyla eklendi.");
-                     }
-                     else 
-                     {
-                         await _supabase.From<Izin>().Where(x => x.Id == _editIzinId)
-                            .Set(x => x.Uid, user.Uid)
-                            .Set(x => x.AdSoyad, user.AdSoyad)
-                            .Set(x => x.BaslangicTarihi, DpIzinBas.SelectedDate.Value)
-                            .Set(x => x.BitisTarihi, DpIzinBit.SelectedDate.Value)
-                            .Set(x => x.Aciklama, TxtAciklama.Text)
-                            .Update();
-                         await ShowDialogAsync("Başarılı", "İzin başarıyla güncellendi.");
-                     }
-                     ResetIzinForm();
-                     await LoadIzinler();
-                 } catch (Exception ex) { await ShowDialogAsync("Hata", "İşlem başarısız oldu:\n" + ex.Message); }
-             } else await ShowDialogAsync("Uyarı", "Lütfen listeden geçerli bir kişi seçin ve tarihleri eksiksiz doldurun.");
+            var secilenIsim = TxtIzinAd.Text?.Trim();
+            var user = _allUsers.FirstOrDefault(u => u.AdSoyad == secilenIsim);
+
+            if (user != null && DpIzinBas.SelectedDate.HasValue && DpIzinBit.SelectedDate.HasValue)
+            {
+                try
+                {
+                    if (!_isIzinEditMode)
+                    {
+                        await _supabase.From<Izin>().Insert(new Izin
+                        {
+                            Uid = user.Uid,
+                            AdSoyad = user.AdSoyad,
+                            BaslangicTarihi = DpIzinBas.SelectedDate.Value,
+                            BitisTarihi = DpIzinBit.SelectedDate.Value,
+                            Aciklama = TxtAciklama.Text
+                        });
+                        await ShowDialogAsync("Başarılı", "İzin başarıyla eklendi.");
+                    }
+                    else
+                    {
+                        await _supabase.From<Izin>().Where(x => x.Id == _editIzinId)
+                           .Set(x => x.Uid, user.Uid)
+                           .Set(x => x.AdSoyad, user.AdSoyad)
+                           .Set(x => x.BaslangicTarihi, DpIzinBas.SelectedDate.Value)
+                           .Set(x => x.BitisTarihi, DpIzinBit.SelectedDate.Value)
+                           .Set(x => x.Aciklama, TxtAciklama.Text)
+                           .Update();
+                        await ShowDialogAsync("Başarılı", "İzin başarıyla güncellendi.");
+                    }
+                    ResetIzinForm();
+                    await LoadIzinler();
+                }
+                catch (Exception ex) { await ShowDialogAsync("Hata", "İşlem başarısız oldu:\n" + ex.Message); }
+            }
+            else await ShowDialogAsync("Uyarı", "Lütfen listeden geçerli bir kişi seçin ve tarihleri eksiksiz doldurun.");
         }
 
         private void MenuEditIzin_Click(object sender, RoutedEventArgs e)
@@ -634,11 +652,13 @@ namespace IpekYoluGYS
                 var onay = await ShowDialogAsync("İzni Sil", $"{izin.AdSoyad} adlı kişinin iznini silmek istiyor musunuz?", false, true);
                 if (onay != null)
                 {
-                    try {
+                    try
+                    {
                         await _supabase.From<Izin>().Where(x => x.Id == izin.Id).Delete();
                         await LoadIzinler();
                         await ShowDialogAsync("Başarılı", "İzin kayıtları tablodan silindi.");
-                    } catch (Exception ex) { await ShowDialogAsync("Hata", "Silme işlemi başarısız:\n" + ex.Message); }
+                    }
+                    catch (Exception ex) { await ShowDialogAsync("Hata", "Silme işlemi başarısız:\n" + ex.Message); }
                 }
             }
         }
@@ -648,6 +668,193 @@ namespace IpekYoluGYS
             if (GridIzinler.SelectedItem is Izin izin)
             {
                 await ShowDialogAsync($"Açıklama Detayı: {izin.AdSoyad}", izin.Aciklama);
+            }
+        }
+
+        // ==========================================
+        // EXCEL AYRINTILI RAPORLAMA METOTLARI (ŞABLON BAZLI)
+        // ==========================================
+
+        private async void MenuExportExcel_Click(object sender, RoutedEventArgs e)
+        {
+            if (GridUsers.SelectedItem is UserDto selectedUser)
+            {
+                string inputMonth = await ShowMonthSelectionDialogAsync();
+                if (int.TryParse(inputMonth, out int selectedMonth) && selectedMonth >= 1 && selectedMonth <= 12)
+                {
+                    await ExportUserMonthlyReportToExcelAsync(selectedUser, DateTime.Now.Year, selectedMonth);
+                }
+                else if (inputMonth != null)
+                {
+                    await ShowDialogAsync("Hata", "Lütfen 1 ile 12 arasında geçerli bir ay numarası giriniz.");
+                }
+            }
+        }
+
+        private async Task<string> ShowMonthSelectionDialogAsync()
+        {
+            Window dialog = new Window
+            {
+                Title = "Ay Seçimi",
+                Width = 320,
+                Height = 160,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                SystemDecorations = SystemDecorations.BorderOnly
+            };
+
+            TaskCompletionSource<string> tcs = new TaskCompletionSource<string>();
+            StackPanel container = new StackPanel { Margin = new Thickness(15) };
+            TextBlock label = new TextBlock { Text = "Raporunu almak istediğiniz ayı giriniz (1-12):", Margin = new Thickness(0, 0, 0, 10) };
+            TextBox inputField = new TextBox { Text = DateTime.Now.Month.ToString(), Margin = new Thickness(0, 0, 0, 15) };
+
+            Button confirmButton = new Button { Content = "Onayla", Width = 80, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right };
+            confirmButton.Click += delegate { dialog.Close(); tcs.SetResult(inputField.Text); };
+
+            container.Children.Add(label);
+            container.Children.Add(inputField);
+            container.Children.Add(confirmButton);
+            dialog.Content = container;
+
+            await dialog.ShowDialog(this);
+            return await tcs.Task;
+        }
+
+        private async Task ExportUserMonthlyReportToExcelAsync(UserDto user, int year, int month)
+        {
+            try
+            {
+                var queryResponse = await _supabase.From<Hareket>().Where(x => x.Uid == user.Uid).Get();
+                List<Hareket> allLogs = queryResponse.Models;
+
+                if (allLogs == null || !allLogs.Any())
+                {
+                    await ShowDialogAsync("Bilgi", "Seçilen kişiye ait veritabanında geçiş logu bulunamadı.");
+                    return;
+                }
+
+                var filteredLogs = allLogs
+                    .Select(log => new
+                    {
+                        Item = log,
+                        ParsedDate = DateTime.TryParse(log.Zaman, out var dt) ? dt : DateTime.MinValue
+                    })
+                    .Where(log => log.ParsedDate.Year == year && log.ParsedDate.Month == month && log.ParsedDate != DateTime.MinValue)
+                    .OrderBy(log => log.ParsedDate)
+                    .ToList();
+
+                if (!filteredLogs.Any())
+                {
+                    await ShowDialogAsync("Bilgi", "Seçilen ay ve yıla ait herhangi bir geçiş kaydı mevcut değil.");
+                    return;
+                }
+
+                bool isVolunteer = user.Rol != null && (user.Rol.ToUpper() == "GONULLU" || user.Rol.ToUpper() == "GÖNÜLLÜ");
+                string templateFileName = isVolunteer ? "GonulluSablonu.xlsx" : "PersonelSablonu.xlsx";
+                string templatePath = System.IO.Path.Combine(System.AppContext.BaseDirectory, "Assets", templateFileName);
+
+                if (!System.IO.File.Exists(templatePath))
+                {
+                    await ShowDialogAsync("Hata", $"Şablon dosyası bulunamadı: {templatePath}\nLütfen Assets klasörüne '{templateFileName}' şablonunu ekleyin.");
+                    return;
+                }
+
+                using var workbook = new ClosedXML.Excel.XLWorkbook(templatePath);
+                var sheetData = workbook.Worksheet("Veri Girişi");
+
+                int dataRowIndex = 3;
+                int daysInMonth = DateTime.DaysInMonth(year, month);
+                var turkishCulture = new System.Globalization.CultureInfo("tr-TR");
+
+                for (int day = 1; day <= daysInMonth; day++)
+                {
+                    DateTime currentDay = new DateTime(year, month, day);
+                    var dayLogs = filteredLogs.Where(x => x.ParsedDate.Date == currentDay.Date).ToList();
+
+                    // 1. Sütun (A): Tarih ve 2. Sütun (B): Personel / Gönüllü
+                    sheetData.Cell(dataRowIndex, 1).Value = currentDay.ToString("dd.MM.yyyy dddd", turkishCulture);
+                    sheetData.Cell(dataRowIndex, 2).Value = user.AdSoyad;
+
+                    bool isWeekend = currentDay.DayOfWeek == DayOfWeek.Saturday || currentDay.DayOfWeek == DayOfWeek.Sunday;
+                    bool isMissingOrInvalidLog = false;
+
+                    if (!dayLogs.Any())
+                    {
+                        sheetData.Cell(dataRowIndex, 3).Value = "";
+                        sheetData.Cell(dataRowIndex, 4).Value = "";
+                        isMissingOrInvalidLog = true;
+                    }
+                    else
+                    {
+                        var firstEntry = dayLogs.FirstOrDefault(x => x.Item.IslemTipi == "GIRIS");
+                        var lastExit = dayLogs.LastOrDefault(x => x.Item.IslemTipi == "CIKIS");
+
+                        if (firstEntry == null || lastExit == null || (lastExit.ParsedDate.Hour == 23 && lastExit.ParsedDate.Minute == 59))
+                        {
+                            sheetData.Cell(dataRowIndex, 3).Value = firstEntry != null ? firstEntry.ParsedDate.ToString("HH:mm") : "";
+                            sheetData.Cell(dataRowIndex, 4).Value = (lastExit != null && lastExit.ParsedDate.Hour == 23) ? "23:59" : "";
+
+                            // Hatalı veya eksik log satırlarını tablo genişliğine göre sarıya boya
+                            // Personel şablonunda A-G arası, Gönüllü şablonunda A-E arası boyanır
+                            string endColumn = isVolunteer ? "E" : "G";
+                            sheetData.Range($"A{dataRowIndex}:{endColumn}{dataRowIndex}").Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.Yellow;
+                            isMissingOrInvalidLog = true;
+                        }
+                        else
+                        {
+                            // 3. Sütun (C): Giriş Saati ve 4. Sütun (D): Çıkış Saati
+                            sheetData.Cell(dataRowIndex, 3).Value = firstEntry.ParsedDate.ToString("HH:mm");
+                            sheetData.Cell(dataRowIndex, 4).Value = lastExit.ParsedDate.ToString("HH:mm");
+                        }
+                    }
+
+                    // Personel şablonuna özel Mola (E Sütunu) ve Zorunlu Mesai (F Sütunu) değerlerini işle.
+                    // Gönüllü şablonunda E Sütunu formüllü "Toplam Mesai" alanı olduğu ve F Sütunu bulunmadığı için bu işlem sadece personele uygulanır.
+                    if (!isVolunteer)
+                    {
+                        if (isWeekend || isMissingOrInvalidLog)
+                        {
+                            sheetData.Cell(dataRowIndex, 5).Value = 0; // E Sütunu (Mola)
+                            sheetData.Cell(dataRowIndex, 6).Value = 0; // F Sütunu (Normal Çalışma)
+                        }
+                        else
+                        {
+                            sheetData.Cell(dataRowIndex, 5).Value = 1; // E Sütunu (Mola)
+                            sheetData.Cell(dataRowIndex, 6).Value = 9; // F Sütunu (Normal Çalışma)
+                        }
+                    }
+
+                    dataRowIndex++;
+                }
+
+                var storageProvider = Avalonia.Controls.TopLevel.GetTopLevel(this)?.StorageProvider;
+                if (storageProvider != null)
+                {
+                    string rolPrefix = isVolunteer ? "Gonullu" : "Personel";
+                    var fileSaveResult = await storageProvider.SaveFilePickerAsync(new Avalonia.Platform.Storage.FilePickerSaveOptions
+                    {
+                        Title = $"{rolPrefix} Takip Excel Raporunu Kaydet",
+                        DefaultExtension = "xlsx",
+                        SuggestedFileName = $"{user.AdSoyad.Replace(" ", "_")}_{rolPrefix}_Rapor_{year}_{month}.xlsx",
+                        FileTypeChoices = new[] { new Avalonia.Platform.Storage.FilePickerFileType("Excel Dosyası") { Patterns = new[] { "*.xlsx" } } }
+                    });
+
+                    if (fileSaveResult != null)
+                    {
+                        // Write-Only Stream sorunu engellemesi (MemoryStream)
+                        using var memoryStream = new System.IO.MemoryStream();
+                        workbook.SaveAs(memoryStream);
+                        memoryStream.Position = 0;
+
+                        using var fileStream = await fileSaveResult.OpenWriteAsync();
+                        await memoryStream.CopyToAsync(fileStream);
+
+                        await ShowDialogAsync("Başarılı", "Veriler şablona başarıyla işlendi ve rapor kaydedildi.");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                await ShowDialogAsync("Hata", "Excel dışa aktarım işlemi sırasında hata oluştu:\n" + ex.Message);
             }
         }
 
