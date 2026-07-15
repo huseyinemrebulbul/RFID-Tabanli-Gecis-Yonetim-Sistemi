@@ -31,7 +31,7 @@
                                 <CalendarDatePicker x:Name="DpLogEnd" Height="36" CornerRadius="4" HorizontalAlignment="Stretch" Watermark="Bitiş seçin..." VerticalContentAlignment="Center"/>
 
                                 <TextBlock Text="Kayıt Türü:" FontWeight="Bold" Margin="0,10,0,0"/>
-                                <ComboBox x:Name="CmbLogTur" SelectedIndex="0" Height="36" CornerRadius="4" HorizontalAlignment="Stretch" VerticalContentAlignment="Center">
+                                <ComboBox x:Name="CmbLogTur" SelectedIndex="0" Height="36" CornerRadius="4" HorizontalAlignment="Stretch" VerticalContentAlignment="Center" SelectionChanged="CmbLogTur_SelectionChanged">
                                     <ComboBoxItem>TÜMÜ</ComboBoxItem>
                                     <ComboBoxItem>PERSONEL</ComboBoxItem>
                                     <ComboBoxItem>GONULLU</ComboBoxItem>
@@ -63,9 +63,9 @@
                         </DataGrid>
                         
                         <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Margin="10" Spacing="20">
-                            <Button Content="◀ Önceki Sayfa" Click="BtnPrevPage_Click" CornerRadius="4" Height="34" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
+                            <Button x:Name="BtnPrevPage" Content="◀ Önceki Sayfa" Click="BtnPrevPage_Click" CornerRadius="4" Height="34" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
                             <TextBlock x:Name="LblPageInfo" Text="Sayfa 1 / 1" VerticalAlignment="Center" FontWeight="Bold"/>
-                            <Button Content="Sonraki Sayfa ▶" Click="BtnNextPage_Click" CornerRadius="4" Height="34" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
+                            <Button x:Name="BtnNextPage" Content="Sonraki Sayfa ▶" Click="BtnNextPage_Click" CornerRadius="4" Height="34" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
                         </StackPanel>
                     </Grid>
                 </Grid>
@@ -86,7 +86,7 @@
                                 
                                 <TextBlock Text="Kart UID:" FontWeight="Bold"/>
                                 <Grid ColumnDefinitions="*, Auto">
-                                    <TextBox Grid.Column="0" x:Name="TxtUid" Height="36" CornerRadius="4" VerticalContentAlignment="Center"/>
+                                    <TextBox Grid.Column="0" x:Name="TxtUid" Height="36" CornerRadius="4" VerticalContentAlignment="Center" Watermark="Kart okutun veya giriniz..."/>
                                     <Button x:Name="BtnCek" Grid.Column="1" Content="📡 Çek" Click="BtnCek_Click" Margin="5,0,0,0" CornerRadius="4" Height="36" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
                                 </Grid>
 
@@ -97,10 +97,10 @@
                                 </ComboBox>
 
                                 <TextBlock Text="Ad Soyad:" FontWeight="Bold"/>
-                                <TextBox x:Name="TxtAd" Height="36" CornerRadius="4" VerticalContentAlignment="Center"/>
+                                <TextBox x:Name="TxtAd" Height="36" CornerRadius="4" VerticalContentAlignment="Center" Watermark="Örn: Ahmet Yılmaz"/>
 
                                 <TextBlock Text="TC Kimlik No:" FontWeight="Bold"/>
-                                <TextBox x:Name="TxtTc" Height="36" CornerRadius="4" VerticalContentAlignment="Center"/>
+                                <TextBox x:Name="TxtTc" Height="36" CornerRadius="4" VerticalContentAlignment="Center" MaxLength="11" Watermark="11 haneli TC giriniz..."/>
 
                                 <Button x:Name="BtnSaveUser" Content="KİŞİYİ KAYDET" Click="BtnSaveUser_Click" Background="#27ae60" Foreground="White" CornerRadius="4" HorizontalAlignment="Stretch" Margin="0,15,0,0" Height="38" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
                                 <Button x:Name="BtnCancelEdit" Content="İptal Et" Click="BtnCancelEdit_Click" CornerRadius="4" HorizontalAlignment="Stretch" IsVisible="False" Height="38" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
@@ -167,7 +167,7 @@
                                 <CalendarDatePicker x:Name="DpIzinBit" Height="36" CornerRadius="4" HorizontalAlignment="Stretch" Watermark="Tarih seçin..." VerticalContentAlignment="Center"/>
                                 
                                 <TextBlock Text="Açıklama:" FontWeight="Bold"/>
-                                <TextBox x:Name="TxtAciklama" Height="80" CornerRadius="4" AcceptsReturn="True" TextWrapping="Wrap" VerticalContentAlignment="Top"/>
+                                <TextBox x:Name="TxtAciklama" Height="80" CornerRadius="4" AcceptsReturn="True" TextWrapping="Wrap" VerticalContentAlignment="Top" Watermark="İzin nedenini veya açıklamasını giriniz..."/>
                                 
                                 <Button x:Name="BtnAddIzin" Content="➕ İzin Ekle" Click="BtnAddIzin_Click" Background="#0078D7" Foreground="White" CornerRadius="4" HorizontalAlignment="Stretch" Margin="0,10,0,0" Height="38" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
                                 <Button x:Name="BtnCancelIzinEdit" Content="İptal Et" Click="BtnCancelIzinEdit_Click" CornerRadius="4" HorizontalAlignment="Stretch" IsVisible="False" Height="38" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
@@ -217,7 +217,7 @@
                     <ScrollViewer MaxHeight="400">
                         <TextBlock x:Name="DialogMessage" Text="Mesaj" TextWrapping="Wrap" LineHeight="22"/>
                     </ScrollViewer>
-                    <TextBox x:Name="DialogInput" IsVisible="False" Height="36" CornerRadius="4" VerticalContentAlignment="Center" Margin="0,10,0,0"/>
+                    <TextBox x:Name="DialogInput" IsVisible="False" Height="36" CornerRadius="4" VerticalContentAlignment="Center" Margin="0,10,0,0" KeyDown="DialogInput_KeyDown"/>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
                         <Button x:Name="BtnDialogCancel" Content="İptal" Click="BtnDialogCancel_Click" IsVisible="False" CornerRadius="4" Height="34" VerticalContentAlignment="Center"/>
                         <Button x:Name="BtnDialogOk" Content="Tamam" Click="BtnDialogOk_Click" Background="#0078D7" Foreground="White" Width="80" CornerRadius="4" HorizontalContentAlignment="Center" Height="34" VerticalContentAlignment="Center"/>
