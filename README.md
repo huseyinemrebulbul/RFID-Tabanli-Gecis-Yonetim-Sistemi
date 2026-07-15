@@ -58,7 +58,7 @@ Sistem; Uç Bilişim (Edge Computing), Masaüstü Yönetimi ve Bulut Veritabanı
 +-------------------------------------------------------+
 |                GÖMÜLÜ DONANIM KATMANI                 |
 |                                                       |
-|  [USB HID RFID] ---> (Core 1) ESP32-S3 Master        |
+|  [USB HID RFID] ---> (Core 1) ESP32-S3 Master         |
 |                         |    (FreeRTOS Queue)         |
 |  [LittleFS RAM] <-------+---> (Core 0) Asenkron Ağ    |
 |  [LED & Buzzer]         |               |             |
@@ -71,7 +71,7 @@ Sistem; Uç Bilişim (Edge Computing), Masaüstü Yönetimi ve Bulut Veritabanı
 +-------------------------------------------------------+
 |             BULUT & YÖNETİM KATMANI                   |
 |                                                       |
-|    Supabase REST API (PostgreSQL Veritabanı)         |
+|    Supabase REST API (PostgreSQL Veritabanı)          |
 |                         ^                             |
 |                         | (DTO & Async REST)          |
 |                         v                             |
